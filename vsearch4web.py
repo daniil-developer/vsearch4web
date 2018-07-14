@@ -28,10 +28,18 @@ def entry_page() -> 'html':
                            the_title='Welcome to search4letters on the web!')
 
 @app.route('/viewlog')
-def viem_the_log() -> str:
+def viem_the_log() -> 'html':
+    contens = []
     with open('vsearch.log') as log:
-        contens = log.read()
-    return escape(contens) #escape позволяет обойти опасения браузера на <> html теги
-
+        for line in log:
+            contens.append([])
+            for item in line.split('|'): #разбить строку (по вертикальной черте) а затем обработать каждый эелемент в получаеннмо списке
+                contens[-1].append(escape(item))
+    titles = ('Form Data', 'Remote_addr', 'User_agent', 'Results')
+    return render_template('viewlog.html',
+                           the_tltle = 'Viem Log',
+                           the_row_titles = titles,
+                           the_data = contens,)
+    
 if __name__ == '__main__': #если приложение выполняется на локалке, то применить app.run()
     app.run(debug=True)
