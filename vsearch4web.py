@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, escape
 from vsearch import search4letters
 
 from DBcm import UseDatabase
+from checker import check_logged_in
 
 app = Flask(__name__)
 
@@ -9,6 +10,16 @@ app.config['dbconfig'] = { 'host': '127.0.0.1',
                            'user': 'vsearch',
                            'password': 'vsearchpasswd',
                            'database': 'vsearchlogDB', }
+
+@app.route('/login')
+def do_login() -> str:
+    session['logged_in'] = True
+    return 'You are now logged in.'
+
+@app.route('/logout')
+def do_logout() -> str:
+    session.pop('logged_in')
+    return 'You are now logged out.'
 
 def log_request(req: 'flask_request', res: str) -> None:
     """Журналирует веб-запрос и возвращаемые результаты"""
@@ -42,9 +53,11 @@ def do_search() -> 'html':
 def entry_page() -> 'html':
     """Выводит HTML-форму."""
     return render_template('entry.html',
+
                            the_title='Welcome to search4letters on the web!')
 
 @app.route('/viewlog')
+@check_logged_in
 def viem_the_log() -> 'html':
     """Выводит содержимое файла журнала в виде HTML-таблицы"""
     with UseDatabase(app.config['dbconfig']) as cursor:
@@ -58,5 +71,9 @@ def viem_the_log() -> 'html':
                            the_row_titles = titles,
                            the_data = contens,)
     
+app.secret_key = 'YouWillNeverGuessMySecretKey'
+
 if __name__ == '__main__': #если приложение выполняется на локалке, то применить app.run()
     app.run(debug=True)
+
+
