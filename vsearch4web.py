@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, escape
 from vsearch import search4letters
 
-from DBcm import UseDatabase, ConnectionError 
+from DBcm import UseDatabase, ConnectionError, CredentialsError
 from checker import check_logged_in
 
 app = Flask(__name__)
@@ -69,16 +69,22 @@ def viem_the_log() -> 'html':
                       from log"""
             cursor.execute(_SQL)
             contens = cursor.fetchall() #fetchall возвращает как список кортежей           
-    titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
-    return render_template('viewlog.html',
+        # raise Exception("Some unkniwn exception")
+        titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
+        return render_template('viewlog.html',
                            the_tltle = 'Viem Log',
                            the_row_titles = titles,
                            the_data = contens,)
     except ConnectionError as err:
         print('Is your database switched on? Error:', str(err))
+    except CredentialsError as err:
+        print('User-id/Password issues. Error:', str(err))
+    except SQLError as err:
+        print('Is your query correct? Error:', str(err)) 
     except Exception as err:
         print('Something went wrong:', str(err))
-    return 'Error'   
+    return 'Error'
+
 app.secret_key = 'YouWillNeverGuessMySecretKey'
 
 if __name__ == '__main__': #если приложение выполняется на локалке, то применить app.run()
