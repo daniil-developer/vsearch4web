@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, escape
 from vsearch import search4letters
 
-from DBcm import UseDatabase
+from DBcm import UseDatabase, ConnectionError 
 from checker import check_logged_in
 
 app = Flask(__name__)
@@ -41,7 +41,10 @@ def do_search() -> 'html':
     letters = request.form['letters']
     title = 'Here are your results:'
     results = str(search4letters(phrase,letters))
-    log_request(request, results)
+    try:
+        log_request(request, results)
+    except Exception as err:
+        print('*****Logging failed with this error', str(err))
     return render_template('resutls.html',
                             the_phrase = phrase,
                             the_letters = letters,
@@ -60,17 +63,22 @@ def entry_page() -> 'html':
 @check_logged_in
 def viem_the_log() -> 'html':
     """Выводит содержимое файла журнала в виде HTML-таблицы"""
-    with UseDatabase(app.config['dbconfig']) as cursor:
-        _SQL = """select phrase, letters, ip, browser_string, results
-                  from log"""
-        cursor.execute(_SQL)
-        contens = cursor.fetchall() #fetchall возвращает как список кортежей           
+    try:
+        with UseDatabase(app.config['dbconfig']) as cursor:
+            _SQL = """select phrase, letters, ip, browser_string, results
+                      from log"""
+            cursor.execute(_SQL)
+            contens = cursor.fetchall() #fetchall возвращает как список кортежей           
     titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
     return render_template('viewlog.html',
                            the_tltle = 'Viem Log',
                            the_row_titles = titles,
                            the_data = contens,)
-    
+    except ConnectionError as err:
+        print('Is your database switched on? Error:', str(err))
+    except Exception as err:
+        print('Something went wrong:', str(err))
+    return 'Error'   
 app.secret_key = 'YouWillNeverGuessMySecretKey'
 
 if __name__ == '__main__': #если приложение выполняется на локалке, то применить app.run()
