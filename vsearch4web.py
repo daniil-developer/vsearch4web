@@ -43,16 +43,26 @@ def do_search() -> 'html':
     @copy_current_request_context
     def log_request(req: 'flask_request', res: str) -> None:
         """Журналирует веб-запрос и возвращаемые результаты"""
-        with UseDatabase(app.config['dbconfig']) as cursor:
-            _SQL = """insert into log
-                    (phrase, letters, ip, browser_string, results)
-                    values
-                    (%s, %s, %s, %s, %s)"""
-            cursor.execute(_SQL, (req.form['phrase'],
-                                req.form['letters'],
-                                req.remote_addr,
-                                req.user_agent.browser,
-                                res, ))
+        try:
+            with UseDatabase(app.config['dbconfig']) as cursor:
+                _SQL = """insert into log
+                        (phrase, letters, ip, browser_string, results)
+                        values
+                        (%s, %s, %s, %s, %s)"""
+                cursor.execute(_SQL, (req.form['phrase'],
+                                    req.form['letters'],
+                                    req.remote_addr,
+                                    req.user_agent.browser,
+                                    res, ))
+        except ConnectionError as err:
+            print('Is your database switched on? Error:', str(err))
+        except CredentialsError as err:
+            print('User-id/Password issues. Error:', str(err))
+        except SQLError as err:
+            print('Is your query correct? Error:', str(err)) 
+        except Exception as err:
+            print('Something went wrong:', str(err))
+        return 'Error'
         
     phrase = request.form['phrase']
     letters = request.form['letters']
