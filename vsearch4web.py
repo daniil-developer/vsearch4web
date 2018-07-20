@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, escape
+from flask import Flask, render_template, request, escape, copy_current_request_context
 from vsearch import search4letters
 
 from DBcm import UseDatabase, ConnectionError, CredentialsError
@@ -39,6 +39,21 @@ def log_request(req: 'flask_request', res: str) -> None:
 @app.route('/search4', methods=['POST'])
 def do_search() -> 'html':
     """Извлекает данные из запроса; выполняет поиск; возвращает результаты."""
+
+    @copy_current_request_context
+    def log_request(req: 'flask_request', res: str) -> None:
+        """Журналирует веб-запрос и возвращаемые результаты"""
+        with UseDatabase(app.config['dbconfig']) as cursor:
+            _SQL = """insert into log
+                    (phrase, letters, ip, browser_string, results)
+                    values
+                    (%s, %s, %s, %s, %s)"""
+            cursor.execute(_SQL, (req.form['phrase'],
+                                req.form['letters'],
+                                req.remote_addr,
+                                req.user_agent.browser,
+                                res, ))
+        
     phrase = request.form['phrase']
     letters = request.form['letters']
     title = 'Here are your results:'
